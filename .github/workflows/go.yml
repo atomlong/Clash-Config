@@ -1,0 +1,56 @@
+name: 定时采集
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Actions'
+        required: false
+        default: 'false'
+
+  schedule:
+    - cron: '0 */6 * * *'
+  watch:
+    types: started  
+    
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 设置时区
+        run: sudo timedatectl set-timezone 'Asia/Shanghai'
+
+      - name: 拉取代码
+        uses: actions/checkout@v2
+
+      - name: Node 环境
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      - name: Git 环境
+        run: |
+          git config --local user.email "atom.long@hotmail.com"
+          git config --local user.name "atomlong"
+
+      - name: 安装依赖
+        run: npm install    
+
+      - name: 清理
+        run: node null.js
+
+      - name: 运行
+        run: npm start
+
+      - name: 提交
+        run: |
+          git diff --exit-code &>/dev/null || {
+          git add .
+          git commit -m "$(date '+%Y-%m-%d %H:%M:%S') 更新订阅链接"
+          }
+
+      - name: Push
+        uses: ad-m/github-push-action@master
+        with:
+          branch: ${{ github.ref }}
